@@ -1,14 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Select, Store } from '@ngxs/store';
+import { Observable, Subscription } from 'rxjs';
 import { Employee } from '../appModels/employee.model';
-import { EmployeeService } from '../appServices/employee.service';
+import { AddEmployee, DeleteEmployee, GetEmployee, UpdateEmployee } from '../store/actions/employee.action';
+import { EmployeeState } from '../store/state/employee.state';
 
 @Component({
   selector: 'app-employee',
   templateUrl: './employee.component.html',
   styleUrls: ['./employee.component.css']
 })
-export class EmployeeComponent implements OnInit {
+
+export class EmployeeComponent implements OnInit, OnDestroy {
 
   empForm!: FormGroup;
   showModal: boolean = false;
@@ -16,9 +20,12 @@ export class EmployeeComponent implements OnInit {
   editModal: boolean = false;
   employees: Employee[] = [];
   idToBeDeleted: string = '';
+  empLoaded!: Subscription;
 
-  constructor(private fb: FormBuilder,
-    private empService: EmployeeService) { }
+  @Select(EmployeeState.getEmployeeList) employees$!: Observable<Employee[]>;
+  @Select(EmployeeState.employeeLoaded) employeesLoaded$!: Observable<boolean>;
+
+  constructor(private fb: FormBuilder, private store: Store) { }
 
   ngOnInit(): void {
     this.getEmployees();
@@ -49,40 +56,46 @@ export class EmployeeComponent implements OnInit {
   //Delete employee
 
   confirmDelete(): void {
-    this.empService.deleteEmployees(this.idToBeDeleted).subscribe(
-      (res) => {
-        console.log(res);
-        this.idToBeDeleted = '';
-        this.getEmployees();
-      },
-      (err) => {
-        console.log(err);
-      })
+    this.store.dispatch(new DeleteEmployee(this.idToBeDeleted));
+    this.idToBeDeleted = '';
+    // this.empService.deleteEmployees(this.idToBeDeleted).subscribe(
+    //   (res) => {
+    //     console.log(res);
+    //     this.idToBeDeleted = '';
+    //     this.getEmployees();
+    //   },
+    //   (err) => {
+    //     console.log(err);
+    //   })
   }
 
   //Form submit
   onEmpSubmit(): void {
     if (this.empForm.valid) {
       if (this.editModal) {
-        this.empService.updateEmployee(this.empForm.value).subscribe(
-          (res) => {
-            console.log(res);
-            this.getEmployees();
-            this.empForm.reset();
-          },
-          (err) => {
-            console.log(err);
-          })
+        this.store.dispatch(new UpdateEmployee(this.empForm.value));
+        this.editModal = false;
+        this.empForm.reset();
+        // this.empService.updateEmployee(this.empForm.value).subscribe(
+        //   (res) => {
+        //     console.log(res);
+        //     this.getEmployees();
+        //     this.empForm.reset();
+        //   },
+        //   (err) => {
+        //     console.log(err);
+        //   })
       } else {
-        console.log(this.empForm.value);
-        this.empService.addEmployee(this.empForm.value).subscribe(
-          (res) => {
-            console.log(res);
-            this.getEmployees();
-          },
-          (err) => {
-            console.log(err);
-          })
+        this.store.dispatch(new AddEmployee(this.empForm.value));
+        // console.log(this.empForm.value);
+        // this.empService.addEmployee(this.empForm.value).subscribe(
+        //   (res) => {
+        //     console.log(res);
+        //     this.getEmployees();
+        //   },
+        //   (err) => {
+        //     console.log(err);
+        //   })
 
       }
     } else {
@@ -92,20 +105,29 @@ export class EmployeeComponent implements OnInit {
     }
   }
   getEmployees(): void {
-    this.empService.getEmployeeList().subscribe(
-      (res: any) => {
-        console.log(res);
-        this.employees = res;
-      },
-      (err) => {
-        console.log(err);
+    this.empLoaded = this.employeesLoaded$.subscribe(res=>{
+      if(!res){
+        this.store.dispatch(new GetEmployee());
       }
-    )
+    })
+
+    // this.empService.getEmployeeList().subscribe(
+    //   (res: any) => {
+    //     console.log(res);
+    //     this.employees = res;
+    //   },
+    //   (err) => {
+    //     console.log(err);
+    //   }
+    // )
   }
 
   onCloseModal() {
     this.showModal = false;
     this.editModal = false;
     this.empForm.reset();
+  }
+  ngOnDestroy(): void {
+    this.empLoaded.unsubscribe();
   }
 }
