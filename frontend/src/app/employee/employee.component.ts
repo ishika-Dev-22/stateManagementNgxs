@@ -18,7 +18,6 @@ export class EmployeeComponent implements OnInit, OnDestroy {
   showModal: boolean = false;
   showDeleteDailog: boolean = false;
   editModal: boolean = false;
-  employees: Employee[] = [];
   idToBeDeleted: string = '';
   empLoaded!: Subscription;
 
@@ -54,72 +53,30 @@ export class EmployeeComponent implements OnInit, OnDestroy {
   }
 
   //Delete employee
-
   confirmDelete(): void {
     this.store.dispatch(new DeleteEmployee(this.idToBeDeleted));
     this.idToBeDeleted = '';
-    // this.empService.deleteEmployees(this.idToBeDeleted).subscribe(
-    //   (res) => {
-    //     console.log(res);
-    //     this.idToBeDeleted = '';
-    //     this.getEmployees();
-    //   },
-    //   (err) => {
-    //     console.log(err);
-    //   })
   }
 
-  //Form submit
+  // Add/Update Form submit
   onEmpSubmit(): void {
     if (this.empForm.valid) {
       if (this.editModal) {
         this.store.dispatch(new UpdateEmployee(this.empForm.value));
         this.editModal = false;
         this.empForm.reset();
-        // this.empService.updateEmployee(this.empForm.value).subscribe(
-        //   (res) => {
-        //     console.log(res);
-        //     this.getEmployees();
-        //     this.empForm.reset();
-        //   },
-        //   (err) => {
-        //     console.log(err);
-        //   })
       } else {
         this.store.dispatch(new AddEmployee(this.empForm.value));
-        // console.log(this.empForm.value);
-        // this.empService.addEmployee(this.empForm.value).subscribe(
-        //   (res) => {
-        //     console.log(res);
-        //     this.getEmployees();
-        //   },
-        //   (err) => {
-        //     console.log(err);
-        //   })
-
-      }
-    } else {
-      if (this.empForm.hasValidator(this.empForm.value)) {
-        console.log("fv");
       }
     }
   }
+  //get full employee list
   getEmployees(): void {
     this.empLoaded = this.employeesLoaded$.subscribe(res=>{
       if(!res){
         this.store.dispatch(new GetEmployee());
       }
     })
-
-    // this.empService.getEmployeeList().subscribe(
-    //   (res: any) => {
-    //     console.log(res);
-    //     this.employees = res;
-    //   },
-    //   (err) => {
-    //     console.log(err);
-    //   }
-    // )
   }
 
   onCloseModal() {
